@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>NPCC CC Test Timer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    #timer {
+      font-size: 64px;
+      margin: 20px;
+      font-weight: bold;
+    }
+
+    .progress-container {
+      width: 80%;
+      background-color: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 20px 0;
+      height: 30px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background-color: #4CAF50;
+      transition: width 0.1s linear;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #startBtn { background-color: #4CAF50; color: white; }
+    #pauseBtn { background-color: #f0ad4e; color: white; }
+    #resetBtn { background-color: #d9534f; color: white; }
+    #stopAudioBtn { background-color: #5bc0de; color: white; }
+  </style>
+</head>
+<body>
+
+  <h1>NPCC CC Test Timer</h1>
+  <div id="timer">45:00.000</div>
+
+  <div class="progress-container">
+    <div id="progress" class="progress-bar"></div>
+  </div>
+
+  <div>
+    <button id="startBtn">Start</button>
+    <button id="pauseBtn">Pause</button>
+    <button id="resetBtn">Reset</button>
+    <button id="stopAudioBtn">Stop Audio</button>
+  </div>
+
+  <script>
+    const TOTAL_TIME_MS = 45 * 60 * 1000; // 45 minutes
+    let startTime = null;
+    let elapsedBeforePause = 0;
+    let running = false;
+    let animationFrameId = null;
+    let oscillator = null;
+    let audioCtx = null;
+
+    const timerDisplay = document.getElementById("timer");
+    const progressBar = document.getElementById("progress");
+
+    function formatTime(ms) {
+      const minutes = Math.floor(ms / 60000);
+      const seconds = Math.floor((ms % 60000) / 1000);
+      const milliseconds = Math.floor(ms % 1000);
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+    }
+
+    function updateTimer() {
+      if (!running) return;
+
+      const now = performance.now();
+      const elapsed = now - startTime + elapsedBeforePause;
+      const remaining = Math.max(0, TOTAL_TIME_MS - elapsed);
+
+      if (remaining <= 1) {
+        timerDisplay.textContent = "00:00.000";
+        progressBar.style.width = "100%";
+        running = false;
+        playLongBeep();
+        alert("Time's up!");
+        return;
+      }
+
+      timerDisplay.textContent = formatTime(remaining);
+      progressBar.style.width = `${Math.min(100, (elapsed / TOTAL_TIME_MS) * 100)}%`;
+
+      animationFrameId = requestAnimationFrame(updateTimer);
+    }
+
+    function playLongBeep() {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // High-pitch
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Soft volume
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 10); // 10 seconds
+    }
+
+    function stopBeep() {
+      if (oscillator && audioCtx) {
+        try {
+          oscillator.stop();
+          audioCtx.close();
+        } catch (e) {
+          console.log("Audio already stopped.");
+        }
+        oscillator = null;
+        audioCtx = null;
+      }
+    }
+
+    function startTimer() {
+      if (running) return;
+      running = true;
+      startTime = performance.now();
+      animationFrameId = requestAnimationFrame(updateTimer);
+    }
+
+    function pauseTimer() {
+      if (!running) return;
+      running = false;
+      elapsedBeforePause += performance.now() - startTime;
+      cancelAnimationFrame(animationFrameId);
+    }
+
+    function resetTimer() {
+      running = false;
+      cancelAnimationFrame(animationFrameId);
+      elapsedBeforePause = 0;
+      startTime = null;
+      timerDisplay.textContent = formatTime(TOTAL_TIME_MS);
+      progressBar.style.width = "0%";
+      stopBeep();
+    }
+
+    // Button bindings
+    document.getElementById("startBtn").onclick = startTimer;
+    document.getElementById("pauseBtn").onclick = pauseTimer;
+    document.getElementById("resetBtn").onclick = resetTimer;
+    document.getElementById("stopAudioBtn").onclick = stopBeep;
+
+    // Set initial state
+    timerDisplay.textContent = formatTime(TOTAL_TIME_MS);
+  </script>
+
+</body>
+</html>
