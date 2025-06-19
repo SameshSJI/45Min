@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>NPCC CC Test Timer</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
+      background-color: #000;
+      color: white;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -23,7 +24,7 @@
 
     .progress-container {
       width: 80%;
-      background-color: #ddd;
+      background-color: #444;
       border-radius: 10px;
       overflow: hidden;
       margin: 20px 0;
@@ -55,6 +56,9 @@
 <body>
 
   <h1>NPCC CC Test Timer</h1>
+
+  <img src="SJI_NPCC.png" alt="SJI NPCC Logo" style="width: 150px; margin-bottom: 20px;" />
+
   <div id="timer">45:00.000</div>
 
   <div class="progress-container">
@@ -84,7 +88,7 @@
       const minutes = Math.floor(ms / 60000);
       const seconds = Math.floor((ms % 60000) / 1000);
       const milliseconds = Math.floor(ms % 1000);
-      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(milliseconds).padStart(3, "0")}`;
     }
 
     function updateTimer() {
@@ -100,6 +104,11 @@
         running = false;
         playLongBeep();
         alert("Time's up!");
+
+        // Disable buttons except reset
+        document.getElementById("startBtn").disabled = true;
+        document.getElementById("pauseBtn").disabled = true;
+        document.getElementById("resetBtn").disabled = false;
         return;
       }
 
@@ -110,13 +119,14 @@
     }
 
     function playLongBeep() {
+      stopBeep(); // prevent overlap
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
 
       oscillator.type = "sine";
-      oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // High-pitch
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Soft volume
+      oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); // High pitch
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Low volume
 
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
@@ -160,6 +170,11 @@
       timerDisplay.textContent = formatTime(TOTAL_TIME_MS);
       progressBar.style.width = "0%";
       stopBeep();
+
+      // Re-enable buttons
+      document.getElementById("startBtn").disabled = false;
+      document.getElementById("pauseBtn").disabled = false;
+      document.getElementById("resetBtn").disabled = false;
     }
 
     // Button bindings
@@ -168,7 +183,7 @@
     document.getElementById("resetBtn").onclick = resetTimer;
     document.getElementById("stopAudioBtn").onclick = stopBeep;
 
-    // Set initial state
+    // Initial state
     timerDisplay.textContent = formatTime(TOTAL_TIME_MS);
   </script>
 
